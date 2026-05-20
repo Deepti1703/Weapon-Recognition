@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light theme (default) */
+    --background: #F9FAFB;
+    --card: #FFFFFF;
+    --secondary: #F3F4F6;
+    --text: #111827;
+    --muted: #6B7280;
+    --primary: #991B1B;
+    --primary-hover: #7F1D1D;
+    --border: #E5E7EB;
+  }
+
+  .dark {
+    /* Dark theme */
+    --background: #0b0f19;
+    --card: #111827;
+    --secondary: #1f2937;
+    --text: #e5e7eb;
+    --muted: #9CA3AF;
+    --primary: #8b0000;
+    --primary-hover: #7F1D1D;
+    --border: #374151;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Prevent stray whites */
+  .dark * {
+    border-color: inherit;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .dark .glass-panel {
+    background: rgba(17, 24, 39, 0.9);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  }
+
+  .primary-btn {
+    background-color: var(--primary);
+    color: white;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .primary-btn:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.3);
+  }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    transition: all 0.2s ease-in-out;
+  }
+
+  .upload-zone:hover {
+    border-color: var(--primary);
+    background-color: rgba(220, 38, 38, 0.05);
+  }
+}
