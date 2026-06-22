@@ -87,17 +87,25 @@ def generate_report_pdf(report, user, image_path: str = None, case=None) -> str:
     elements.append(Spacer(1, 15))
     
     # User Details Table
-    case_num = case.case_number if case else f"CASE-{report.case_id}"
-    victim_ref = case.victim_reference if case else "N/A"
-    case_desc = case.case_description if case else "N/A"
+    case_num = str(case.case_number) if (case and getattr(case, "case_number", None)) else f"CASE-{report.case_id}"
+    victim_ref = str(case.victim_reference) if (case and getattr(case, "victim_reference", None)) else "N/A"
+    case_desc = str(case.case_description) if (case and getattr(case, "case_description", None)) else "N/A"
+
+    analyst_name = "System"
+    if user:
+        analyst_name = str(user.full_name or user.username or "System")
+        
+    system_role = "Personnel"
+    if user and getattr(user, "role", None):
+        system_role = str(user.role.replace('_', ' ').capitalize())
 
     info_data = [
         [Paragraph("<b>Case Reference ID:</b>", normal_style), Paragraph(case_num, normal_style),
          Paragraph("<b>Date & Time:</b>", normal_style), Paragraph(report.generated_date.strftime("%Y-%m-%d %H:%M") if getattr(report, "generated_date", None) else datetime.now().strftime("%Y-%m-%d %H:%M"), normal_style)],
         [Paragraph("<b>Victim Reference:</b>", normal_style), Paragraph(victim_ref, normal_style),
-         Paragraph("<b>Analyst Name:</b>", normal_style), Paragraph(user.full_name or user.username if user else "System", normal_style)],
+         Paragraph("<b>Analyst Name:</b>", normal_style), Paragraph(analyst_name, normal_style)],
         [Paragraph("<b>Case Description:</b>", normal_style), Paragraph(case_desc, normal_style),
-         Paragraph("<b>System Role:</b>", normal_style), Paragraph(user.role.replace('_', ' ').capitalize() if user else "Personnel", normal_style)]
+         Paragraph("<b>System Role:</b>", normal_style), Paragraph(system_role, normal_style)]
     ]
     
     info_table = Table(info_data, colWidths=[110, 160, 90, 160])
@@ -113,15 +121,19 @@ def generate_report_pdf(report, user, image_path: str = None, case=None) -> str:
     # Prediction Results
     elements.append(Paragraph("<b>AI Inference Results</b>", section_heading_style))
     
-    weapon_prob_str = f"{report.weapon_probability * 100:.1f}%" if report.weapon_probability else "N/A"
-    wound_prob_str = f"{report.wound_probability * 100:.1f}%" if report.wound_probability else "N/A"
+    weapon_prob_str = f"{report.weapon_probability * 100:.1f}%" if (report and getattr(report, "weapon_probability", None)) else "N/A"
+    wound_prob_str = f"{report.wound_probability * 100:.1f}%" if (report and getattr(report, "wound_probability", None)) else "N/A"
     
+    pred_weapon = str(report.predicted_weapon) if (report and getattr(report, "predicted_weapon", None)) else "Unknown"
+    pred_wound = str(report.predicted_wound_type) if (report and getattr(report, "predicted_wound_type", None)) else "Unknown"
+    severity_val = str(report.severity) if (report and getattr(report, "severity", None)) else "Moderate"
+
     results_data = [
-        [Paragraph("<b>Predicted Implement:</b>", normal_bold_style), Paragraph(report.predicted_weapon, normal_style),
+        [Paragraph("<b>Predicted Implement:</b>", normal_bold_style), Paragraph(pred_weapon, normal_style),
          Paragraph("<b>Confidence Score:</b>", normal_bold_style), Paragraph(weapon_prob_str, normal_style)],
-        [Paragraph("<b>Wound Typology:</b>", normal_bold_style), Paragraph(report.predicted_wound_type, normal_style),
+        [Paragraph("<b>Wound Typology:</b>", normal_bold_style), Paragraph(pred_wound, normal_style),
          Paragraph("<b>Confidence Score:</b>", normal_bold_style), Paragraph(wound_prob_str, normal_style)],
-        [Paragraph("<b>Assessed Severity:</b>", normal_bold_style), Paragraph(f"<font color='#B91C1C'><b>{report.severity or 'Moderate'}</b></font>", normal_style),
+        [Paragraph("<b>Assessed Severity:</b>", normal_bold_style), Paragraph(f"<font color='#B91C1C'><b>{severity_val}</b></font>", normal_style),
          Paragraph("<b>Inference Engine:</b>", normal_bold_style), Paragraph("v3.0-ensemble", normal_style)]
     ]
     results_table = Table(results_data, colWidths=[130, 140, 110, 140])
@@ -180,9 +192,13 @@ def generate_report_pdf(report, user, image_path: str = None, case=None) -> str:
     
     # Signatures Panel
     elements.append(Spacer(1, 35))
+    analyst_sig_name = "Unknown"
+    if user:
+        analyst_sig_name = str(user.full_name or user.username or "Unknown")
+
     sig_data = [
         [Paragraph("____________________________", normal_style), Paragraph("____________________________", normal_style)],
-        [Paragraph(f"<b>Analyst Signature</b><br/>{user.full_name or user.username if user else 'Unknown'}", normal_style),
+        [Paragraph(f"<b>Analyst Signature</b><br/>{analyst_sig_name}", normal_style),
          Paragraph("<b>Reviewer Signature</b><br/>Certified Forensic Examiner", normal_style)]
     ]
     sig_table = Table(sig_data, colWidths=[260, 260])

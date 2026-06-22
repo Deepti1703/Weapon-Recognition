@@ -1107,7 +1107,12 @@ async def analyze_wound(
 
     uploads_dir = os.path.join("uploads", "images")
     os.makedirs(uploads_dir, exist_ok=True)
-    temp_image_path = os.path.join(uploads_dir, f"{user.id}_{file.filename}")
+    
+    timestamp_str = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    base, ext = os.path.splitext(file.filename)
+    unique_filename = f"{user.id}_{base}_{timestamp_str}{ext}"
+    temp_image_path = os.path.join(uploads_dir, unique_filename)
+    
     with open(temp_image_path, "wb") as f:
         f.write(image_bytes)
 
@@ -1137,23 +1142,35 @@ async def analyze_wound(
 
     wound_image_id = None
     try:
-        wound_row = WoundImage(
-            image_path=temp_image_path,
-            wound_type=raw_wound,
-            weapon_type=raw_weapon,
-            severity=severity,
-            anatomical_location="Unknown",
-            annotations={"filename": file.filename, "analyst": user.username},
-            analyst_id=user.id,
-            image_quality="good",
-        )
-        db.add(wound_row)
-        db.commit()
-        db.refresh(wound_row)
-        wound_image_id = wound_row.id
+        existing_img = db.query(WoundImage).filter(WoundImage.image_path == temp_image_path).first()
+        if existing_img:
+            wound_image_id = existing_img.id
+            print(f"[WOUND IMAGE] Reusing existing image path record: {temp_image_path}")
+        else:
+            wound_row = WoundImage(
+                image_path=temp_image_path,
+                wound_type=raw_wound,
+                weapon_type=raw_weapon,
+                severity=severity,
+                anatomical_location="Unknown",
+                annotations={"filename": file.filename, "analyst": user.username},
+                analyst_id=user.id,
+                image_quality="good",
+            )
+            db.add(wound_row)
+            db.commit()
+            db.refresh(wound_row)
+            wound_image_id = wound_row.id
+            print(f"[WOUND IMAGE] Saved new image path record: {temp_image_path}")
     except Exception as e:
         print(f"Error saving wound image: {e}")
         db.rollback()
+        try:
+            existing_img = db.query(WoundImage).filter(WoundImage.image_path == temp_image_path).first()
+            if existing_img:
+                wound_image_id = existing_img.id
+        except Exception:
+            pass
 
     prediction_log_id = None
     try:
@@ -1221,9 +1238,14 @@ async def analyze_wound(
     case_row.report_id = record.id
     db.commit()
 
-    pdf_path = generate_report_pdf(record, user, image_path=temp_image_path)
-    record.pdf_path = pdf_path
-    db.commit()
+    try:
+        pdf_path = generate_report_pdf(record, user, image_path=temp_image_path)
+        record.pdf_path = pdf_path
+        db.commit()
+        print(f"[PDF REPORT] Generated report PDF: {pdf_path}")
+    except Exception as pdf_err:
+        print(f"[PDF ERROR] Failed to generate PDF report: {pdf_err}")
+        db.rollback()
 
     # Save to permanent cases table
     new_case = None
